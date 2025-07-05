@@ -6,27 +6,49 @@
     <title>Tumira - Send Money to Zimbabwe</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        /* Base styles for body to cover full screen and prevent horizontal scrolling */
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f0f2f5; /* Light gray background */
             display: flex;
+            flex-direction: column; /* Stack content vertically for smaller screens */
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
-            padding: 20px;
+            min-height: 100vh; /* Full viewport height */
+            width: 100vw; /* Full viewport width */
+            padding: 1rem; /* Responsive padding */
             box-sizing: border-box;
+            overflow-x: hidden; /* Prevent horizontal scrolling */
         }
-        /* Custom styles for better aesthetics */
+
+        /* Custom styles for better aesthetics and responsiveness */
         .card {
             background-color: #ffffff;
             border-radius: 1rem; /* Rounded corners */
             box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            padding: 2.5rem;
+            padding: 2rem; /* Default padding */
             width: 100%;
             max-width: 600px; /* Max width for larger screens */
+            margin-top: 1rem; /* Add some top margin */
+            margin-bottom: 1rem; /* Add some bottom margin */
+            transition: all 0.3s ease-in-out; /* Smooth transitions for card */
         }
+        @media (min-width: 640px) { /* Small screens (sm) */
+            body {
+                padding: 2rem;
+            }
+            .card {
+                padding: 2.5rem;
+            }
+        }
+        @media (min-width: 768px) { /* Medium screens (md) */
+            .card {
+                padding: 3rem;
+            }
+        }
+
         .input-field {
             padding: 0.75rem 1rem;
             border: 1px solid #d1d5db; /* Light gray border */
@@ -40,53 +62,75 @@
             border-color: #3b82f6; /* Blue on focus */
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25); /* Light blue shadow on focus */
         }
+
         .btn-primary {
             background-color: #3b82f6; /* Blue background */
             color: #ffffff;
             padding: 0.75rem 1.5rem;
             border-radius: 0.5rem;
             font-weight: 600;
-            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out;
             cursor: pointer;
             width: 100%;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
         .btn-primary:hover {
             background-color: #2563eb; /* Darker blue on hover */
-            transform: translateY(-1px);
+            transform: translateY(-2px); /* Lift slightly */
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
         }
         .btn-primary:active {
             transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
+
         .btn-secondary {
             background-color: #6b7280; /* Gray background */
             color: #ffffff;
             padding: 0.75rem 1.5rem;
             border-radius: 0.5rem;
             font-weight: 600;
-            transition: background-color 0.2s ease-in-out;
+            transition: background-color 0.2s ease-in-out, transform 0.1s ease-in-out, box-shadow 0.2s ease-in-out;
             cursor: pointer;
             width: 100%;
             text-align: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
         }
         .btn-secondary:hover {
             background-color: #4b5563; /* Darker gray on hover */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.12);
         }
+        .btn-secondary:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        }
+
         .section-title {
-            font-size: 1.25rem; /* Large text */
+            font-size: 1.5rem; /* Larger text for titles */
             font-weight: 700; /* Bold */
             color: #1f2937; /* Dark gray text */
             margin-bottom: 1.5rem;
             border-bottom: 2px solid #e5e7eb; /* Light gray line */
-            padding-bottom: 0.5rem;
+            padding-bottom: 0.75rem; /* More padding below line */
+            text-align: center; /* Center align section titles */
         }
+        @media (min-width: 640px) {
+            .section-title {
+                font-size: 1.75rem;
+            }
+        }
+
         .message-box {
             background-color: #dbeafe; /* Light blue */
             color: #1e40af; /* Dark blue text */
             padding: 1rem;
             border-radius: 0.5rem;
-            margin-top: 1rem;
+            margin-top: 1.5rem; /* More margin */
             display: none; /* Hidden by default */
             text-align: center;
+            font-weight: 500;
+            transition: all 0.3s ease-in-out;
         }
         .error-message {
             background-color: #fee2e2; /* Light red */
@@ -96,38 +140,94 @@
             background-color: #d1fae5; /* Light green */
             color: #065f46; /* Dark green text */
         }
+
         .tab-button {
-            padding: 0.75rem 1.5rem;
+            padding: 0.75rem 1rem; /* Adjusted padding */
             border-radius: 0.5rem;
             font-weight: 600;
             cursor: pointer;
             background-color: #e5e7eb;
             color: #4b5563;
-            transition: background-color 0.2s ease-in-out;
+            transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, transform 0.1s ease-in-out;
+            flex-grow: 1; /* Allow buttons to grow */
+            text-align: center;
+            white-space: nowrap; /* Prevent text wrapping */
+        }
+        .tab-button:hover {
+            transform: translateY(-1px);
         }
         .tab-button.active {
             background-color: #3b82f6;
             color: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+        .tab-button.active:hover {
+            transform: translateY(0); /* No lift when active */
+        }
+        /* Responsive tab buttons */
+        .tab-buttons-container {
+            display: flex;
+            flex-wrap: wrap; /* Allow wrapping on small screens */
+            gap: 0.5rem; /* Space between buttons */
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        @media (min-width: 640px) {
+            .tab-buttons-container {
+                flex-wrap: nowrap; /* No wrapping on larger screens */
+                gap: 0.75rem;
+            }
+            .tab-button {
+                padding: 0.75rem 1.5rem;
+            }
+        }
+
         .tab-content {
             display: none;
+            padding-top: 1rem; /* Padding for content below tabs */
         }
         .tab-content.active {
             display: block;
         }
+
         .loading-spinner {
             border: 4px solid rgba(0, 0, 0, 0.1);
             border-left-color: #3b82f6;
             border-radius: 50%;
-            width: 24px;
-            height: 24px;
+            width: 28px; /* Slightly larger spinner */
+            height: 28px;
             animation: spin 1s linear infinite;
-            margin: 0 auto;
+            margin: 1.5rem auto; /* More margin */
             display: none;
         }
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
+        }
+
+        /* Adjust font sizes for general text content */
+        p, ul, li {
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+        @media (min-width: 640px) {
+            p, ul, li {
+                font-size: 1rem;
+            }
+        }
+
+        /* User Info / Auth Section styling */
+        #user-info-section, #auth-section {
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0.75rem; /* Slightly more rounded */
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            text-align: center;
+        }
+        #user-id-display, #user-id-display-anon {
+            word-break: break-all; /* Ensure long IDs wrap */
+            font-size: 0.75rem;
+            margin-top: 0.5rem;
         }
     </style>
     <!-- Firebase SDKs -->
@@ -173,6 +273,8 @@
                         try {
                             await signInAnonymously(window.auth);
                             console.log("Signed in anonymously.");
+                            // Update anonymous user ID display immediately after sign-in
+                            document.getElementById('user-id-display-anon').textContent = `User ID: ${window.auth.currentUser?.uid || 'Not authenticated'}`;
                         } catch (error) {
                             console.error("Error signing in anonymously:", error);
                         }
@@ -235,11 +337,11 @@
 </head>
 <body class="antialiased">
     <div class="card">
-        <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Tumira</h1>
-        <p class="text-center text-gray-600 mb-8">Send money securely and easily to Zimbabwe.</p>
+        <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8 sm:text-5xl">Tumira</h1>
+        <p class="text-center text-gray-600 mb-8 text-base sm:text-lg">Send money securely and easily to Zimbabwe.</p>
 
         <!-- Navigation Tabs -->
-        <div class="flex justify-center space-x-2 mb-8">
+        <div class="tab-buttons-container">
             <button class="tab-button active" data-tab="remittance">Send Money</button>
             <button class="tab-button" data-tab="account">Account</button>
             <button class="tab-button" data-tab="fees">Fees</button>
