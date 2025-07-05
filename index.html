@@ -239,14 +239,15 @@
         // --- START: PASTE YOUR FIREBASE CONFIG HERE ---
         // Get your Firebase project's config from Firebase Console -> Project settings -> Your apps -> Web app
         const firebaseConfig = {
-        apiKey: "AIzaSyA_Sy72josAAuBc3N8cvgEo2j1Nd0j_uZs",
-        authDomain: "tumiraremit-38564.firebaseapp.com",
-        projectId: "tumiraremit-38564",
-        storageBucket: "tumiraremit-38564.firebasestorage.app",
-        messagingSenderId: "193421797298",
-        appId: "1:193421797298:web:0b3ff6e7d06b0df45d66ab",
-        measurementId: "G-0GZ81MDLX7"
-        };
+  apiKey: "AIzaSyA_Sy72josAAuBc3N8cvgEo2j1Nd0j_uZs",
+  authDomain: "tumiraremit-38564.firebaseapp.com",
+  projectId: "tumiraremit-38564",
+  storageBucket: "tumiraremit-38564.firebasestorage.app",
+  messagingSenderId: "193421797298",
+  appId: "1:193421797298:web:0b3ff6e7d06b0df45d66ab",
+  measurementId: "G-0GZ81MDLX7"
+};
+
         // --- END: PASTE YOUR FIREBASE CONFIG HERE ---
 
         // The appId used for Firestore collection paths
@@ -516,6 +517,7 @@
         const tabButtons = document.querySelectorAll('.tab-button');
         const tabContents = document.querySelectorAll('.tab-content');
 
+        const authForm = document.getElementById('authForm'); // Get the auth form container
         const accountNameInput = document.getElementById('accountName');
         const accountEmailInput = document.getElementById('accountEmail');
         const accountPasswordInput = document.getElementById('accountPassword');
@@ -610,7 +612,7 @@
         async function handleCreateAccount() {
             const email = accountEmailInput.value;
             const password = accountPasswordInput.value;
-            const name = accountNameInput.value;
+            const name = accountNameInput.value; // Get the name from input
 
             if (!email || !password || password.length < 6) {
                 displayMessage(accountMessageDiv, 'Please enter a valid email and a password of at least 6 characters.', 'error');
@@ -628,14 +630,28 @@
                 // Save user profile to Firestore
                 const userProfileRef = window.doc(db, `artifacts/${appId}/users/${user.uid}/profiles`, 'userProfile');
                 await window.setDoc(userProfileRef, {
-                    name: name,
+                    name: name, // Save the name
                     email: email,
                     createdAt: new Date()
                 });
+
                 displayMessage(accountMessageDiv, 'Account created successfully! You are now logged in.', 'success');
+                
+                // Update display immediately
+                document.getElementById('displayUserName').textContent = name || 'User';
+                document.getElementById('displayUserEmail').textContent = email;
+                document.getElementById('user-id-display').textContent = `User ID: ${user.uid}`;
+
+                // Hide the auth form and show user info section
+                authForm.classList.add('hidden'); // Hide the account creation form
+                document.getElementById('auth-section').classList.add('hidden'); // Hide the general auth prompt
+                document.getElementById('user-info-section').classList.remove('hidden'); // Show the user info
+
+                // Clear form fields
                 accountNameInput.value = '';
                 accountEmailInput.value = '';
                 accountPasswordInput.value = '';
+
             } catch (error) {
                 console.error("Error creating account:", error);
                 let errorMessage = 'Failed to create account.';
@@ -663,11 +679,24 @@
             accountMessageDiv.style.display = 'none';
 
             try {
-                await window.signInWithEmailAndPassword(auth, email, password);
+                const userCredential = await window.signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
                 displayMessage(accountMessageDiv, 'Logged in successfully!', 'success');
+                
+                // Fetch and update user profile immediately after login
+                await fetchUserProfile(user.uid);
+
+                // Hide the auth form and show user info section
+                authForm.classList.add('hidden'); // Hide the account creation form
+                document.getElementById('auth-section').classList.add('hidden'); // Hide the general auth prompt
+                document.getElementById('user-info-section').classList.remove('hidden'); // Show the user info
+
+                // Clear form fields
                 accountNameInput.value = ''; // Clear name field after login
                 accountEmailInput.value = '';
                 accountPasswordInput.value = '';
+
             } catch (error) {
                 console.error("Error logging in:", error);
                 let errorMessage = 'Failed to log in. Please check your email and password.';
@@ -684,10 +713,16 @@
             try {
                 await window.signOut(auth);
                 displayMessage(responseMessageDiv, 'Logged out successfully.', 'success');
+                
+                // Clear display and show auth section
                 document.getElementById('user-id-display').textContent = 'Not logged in';
                 document.getElementById('displayUserName').textContent = '';
                 document.getElementById('displayUserEmail').textContent = '';
-                // Switch back to account tab or remittance tab
+                document.getElementById('user-info-section').classList.add('hidden'); // Hide user info
+                document.getElementById('auth-section').classList.remove('hidden'); // Show general auth prompt
+                authForm.classList.remove('hidden'); // Show the account creation form
+
+                // Switch back to account tab (or remittance if desired)
                 document.querySelector('.tab-button[data-tab="account"]').click();
             } catch (error) {
                 console.error("Error logging out:", error);
@@ -712,7 +747,7 @@
         loginAccountBtn.addEventListener('click', handleLoginAccount);
         logoutButton.addEventListener('click', handleLogout);
 
-        // Initial setup for anonymous user ID display
+        // Initial setup for anonymous user ID display and auth state
         window.onload = function() {
             // This is handled by onAuthStateChanged in the module script
             // but ensure the anonymous user ID is displayed if no custom token
