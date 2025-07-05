@@ -57,6 +57,20 @@
         .btn-primary:active {
             transform: translateY(0);
         }
+        .btn-secondary {
+            background-color: #6b7280; /* Gray background */
+            color: #ffffff;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: background-color 0.2s ease-in-out;
+            cursor: pointer;
+            width: 100%;
+            text-align: center;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563; /* Darker gray on hover */
+        }
         .section-title {
             font-size: 1.25rem; /* Large text */
             font-weight: 700; /* Bold */
@@ -74,86 +88,302 @@
             display: none; /* Hidden by default */
             text-align: center;
         }
+        .error-message {
+            background-color: #fee2e2; /* Light red */
+            color: #dc2626; /* Dark red text */
+        }
+        .success-message {
+            background-color: #d1fae5; /* Light green */
+            color: #065f46; /* Dark green text */
+        }
+        .tab-button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            background-color: #e5e7eb;
+            color: #4b5563;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .tab-button.active {
+            background-color: #3b82f6;
+            color: #ffffff;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3b82f6;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global variables for Firebase (will be initialized in script)
+        window.firebaseApp = null;
+        window.db = null;
+        window.auth = null;
+        window.currentUserId = null;
+        window.isAuthReady = false; // Flag to indicate if auth state is known
+
+        // Initialize Firebase
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+
+        try {
+            window.firebaseApp = initializeApp(firebaseConfig);
+            window.db = getFirestore(window.firebaseApp);
+            window.auth = getAuth(window.firebaseApp);
+
+            // Listen for authentication state changes
+            onAuthStateChanged(window.auth, async (user) => {
+                if (user) {
+                    window.currentUserId = user.uid;
+                    console.log("User is signed in:", user.uid);
+                    document.getElementById('user-id-display').textContent = `User ID: ${user.uid}`;
+                    document.getElementById('auth-section').classList.add('hidden');
+                    document.getElementById('user-info-section').classList.remove('hidden');
+                    // Fetch user profile if it exists
+                    await fetchUserProfile(user.uid);
+                } else {
+                    window.currentUserId = null;
+                    console.log("No user is signed in.");
+                    document.getElementById('user-id-display').textContent = 'Not logged in';
+                    document.getElementById('auth-section').classList.remove('hidden');
+                    document.getElementById('user-info-section').classList.add('hidden');
+                    // Attempt anonymous sign-in if no custom token is provided
+                    if (typeof __initial_auth_token === 'undefined') {
+                        try {
+                            await signInAnonymously(window.auth);
+                            console.log("Signed in anonymously.");
+                        } catch (error) {
+                            console.error("Error signing in anonymously:", error);
+                        }
+                    }
+                }
+                window.isAuthReady = true; // Auth state is now known
+                console.log("Firebase Auth Ready:", window.isAuthReady);
+            });
+
+            // Sign in with custom token if available
+            if (typeof __initial_auth_token !== 'undefined') {
+                signInWithCustomToken(window.auth, __initial_auth_token)
+                    .then(() => console.log("Signed in with custom token."))
+                    .catch(error => console.error("Error signing in with custom token:", error));
+            } else {
+                // If no custom token, onAuthStateChanged will handle anonymous sign-in
+                console.log("No initial auth token provided. Will attempt anonymous sign-in.");
+            }
+
+        } catch (error) {
+            console.error("Error initializing Firebase:", error);
+            document.getElementById('responseMessage').textContent = `Firebase initialization error: ${error.message}`;
+            document.getElementById('responseMessage').classList.add('error-message');
+            document.getElementById('responseMessage').style.display = 'block';
+        }
+
+        // Function to fetch user profile from Firestore
+        async function fetchUserProfile(userId) {
+            if (!window.db || !userId) return;
+            const userDocRef = doc(window.db, `artifacts/${appId}/users/${userId}/profiles`, 'userProfile');
+            try {
+                const docSnap = await getDoc(userDocRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('displayUserName').textContent = data.name || 'User';
+                    document.getElementById('displayUserEmail').textContent = data.email || '';
+                    console.log("User profile fetched:", data);
+                } else {
+                    console.log("No user profile found for:", userId);
+                    document.getElementById('displayUserName').textContent = 'New User';
+                    document.getElementById('displayUserEmail').textContent = '';
+                }
+            } catch (error) {
+                console.error("Error fetching user profile:", error);
+            }
+        }
+
+        // Expose functions to global scope for HTML event listeners
+        window.createUserWithEmailAndPassword = createUserWithEmailAndPassword;
+        window.signInWithEmailAndPassword = signInWithEmailAndPassword;
+        window.signOut = signOut;
+        window.setDoc = setDoc;
+        window.doc = doc;
+        window.collection = collection;
+        window.getDoc = getDoc;
+        window.getFirestore = getFirestore;
+        window.getAuth = getAuth;
+        window.appId = appId; // Make appId available globally
+    </script>
 </head>
 <body class="antialiased">
     <div class="card">
         <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8">Tumira</h1>
         <p class="text-center text-gray-600 mb-8">Send money securely and easily to Zimbabwe.</p>
 
-        <form id="remittanceForm" class="space-y-6">
-            <!-- Sender Details -->
-            <div class="space-y-4">
-                <h2 class="section-title">Your Details</h2>
-                <div>
-                    <label for="senderName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                    <input type="text" id="senderName" name="senderName" placeholder="Your Full Name" class="input-field" required>
-                </div>
-                <div>
-                    <label for="senderPhone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                    <input type="tel" id="senderPhone" name="senderPhone" placeholder="+1234567890" class="input-field" required>
-                </div>
-                <div>
-                    <label for="senderEmail" class="block text-sm font-medium text-gray-700 mb-1">Email Address (Optional)</label>
-                    <input type="email" id="senderEmail" name="senderEmail" placeholder="you@example.com" class="input-field">
-                </div>
-            </div>
+        <!-- Navigation Tabs -->
+        <div class="flex justify-center space-x-2 mb-8">
+            <button class="tab-button active" data-tab="remittance">Send Money</button>
+            <button class="tab-button" data-tab="account">Account</button>
+            <button class="tab-button" data-tab="fees">Fees</button>
+            <button class="tab-button" data-tab="about">About Us</button>
+        </div>
 
-            <!-- Recipient Details -->
-            <div class="space-y-4 pt-6 border-t border-gray-200">
-                <h2 class="section-title">Recipient Details</h2>
-                <div>
-                    <label for="recipientName" class="block text-sm font-medium text-gray-700 mb-1">Recipient Full Name</label>
-                    <input type="text" id="recipientName" name="recipientName" placeholder="Recipient's Full Name" class="input-field" required>
-                </div>
-                <div>
-                    <label for="recipientPhone" class="block text-sm font-medium text-gray-700 mb-1">Recipient Phone Number (Zimbabwe)</label>
-                    <input type="tel" id="recipientPhone" name="recipientPhone" placeholder="+2637xxxxxxxxx" class="input-field" required>
-                </div>
-                <div>
-                    <label for="payoutMethod" class="block text-sm font-medium text-gray-700 mb-1">Payout Method</label>
-                    <select id="payoutMethod" name="payoutMethod" class="input-field" required>
-                        <option value="">Select Payout Method</option>
-                        <option value="mobile_money">Mobile Money (EcoCash, OneMoney)</option>
-                        <option value="bank_transfer">Bank Transfer</option>
-                        <option value="cash_pickup">Cash Pickup</option>
-                    </option>
-                    </select>
-                </div>
-                <div id="bankDetails" class="space-y-4 hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Bank Details</label>
+        <!-- User Info / Auth Section -->
+        <div id="user-info-section" class="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm hidden">
+            <p class="text-sm font-semibold text-gray-700">Welcome, <span id="displayUserName"></span>!</p>
+            <p class="text-xs text-gray-500" id="displayUserEmail"></p>
+            <p class="text-xs text-gray-500 mt-1" id="user-id-display">User ID: Loading...</p>
+            <button id="logoutButton" class="btn-secondary mt-3 text-sm py-2 px-4">Logout</button>
+        </div>
+
+        <div id="auth-section" class="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm">
+            <p class="text-sm text-gray-700 text-center">Please create an account or log in to use all features.</p>
+            <p class="text-xs text-gray-500 mt-1 text-center" id="user-id-display-anon">User ID: Loading...</p>
+        </div>
+
+        <!-- Remittance Form Tab Content -->
+        <div id="remittance" class="tab-content active">
+            <form id="remittanceForm" class="space-y-6">
+                <!-- Sender Details -->
+                <div class="space-y-4">
+                    <h2 class="section-title">Your Details</h2>
                     <div>
-                        <input type="text" id="bankName" name="bankName" placeholder="Bank Name" class="input-field">
+                        <label for="senderName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                        <input type="text" id="senderName" name="senderName" placeholder="Your Full Name" class="input-field" required>
                     </div>
                     <div>
-                        <input type="text" id="accountNumber" name="accountNumber" placeholder="Account Number" class="input-field">
+                        <label for="senderPhone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                        <input type="tel" id="senderPhone" name="senderPhone" placeholder="+1234567890" class="input-field" required>
+                    </div>
+                    <div>
+                        <label for="senderEmail" class="block text-sm font-medium text-gray-700 mb-1">Email Address (Optional)</label>
+                        <input type="email" id="senderEmail" name="senderEmail" placeholder="you@example.com" class="input-field">
                     </div>
                 </div>
-            </div>
 
-            <!-- Transaction Details -->
-            <div class="space-y-4 pt-6 border-t border-gray-200">
-                <h2 class="section-title">Transaction Details</h2>
-                <div>
-                    <label for="amountSend" class="block text-sm font-medium text-gray-700 mb-1">Amount to Send (USD)</label>
-                    <input type="number" id="amountSend" name="amountSend" placeholder="e.g., 100" min="1" step="0.01" class="input-field" required>
+                <!-- Recipient Details -->
+                <div class="space-y-4 pt-6 border-t border-gray-200">
+                    <h2 class="section-title">Recipient Details</h2>
+                    <div>
+                        <label for="recipientName" class="block text-sm font-medium text-gray-700 mb-1">Recipient Full Name</label>
+                        <input type="text" id="recipientName" name="recipientName" placeholder="Recipient's Full Name" class="input-field" required>
+                    </div>
+                    <div>
+                        <label for="recipientPhone" class="block text-sm font-medium text-gray-700 mb-1">Recipient Phone Number (Zimbabwe)</label>
+                        <input type="tel" id="recipientPhone" name="recipientPhone" placeholder="+2637xxxxxxxxx" class="input-field" required>
+                    </div>
+                    <div>
+                        <label for="payoutMethod" class="block text-sm font-medium text-gray-700 mb-1">Payout Method</label>
+                        <select id="payoutMethod" name="payoutMethod" class="input-field" required>
+                            <option value="">Select Payout Method</option>
+                            <option value="mobile_money">Mobile Money (EcoCash, OneMoney)</option>
+                            <option value="bank_transfer">Bank Transfer</option>
+                            <option value="cash_pickup">Cash Pickup</option>
+                        </select>
+                    </div>
+                    <div id="bankDetails" class="space-y-4 hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Bank Details</label>
+                        <div>
+                            <input type="text" id="bankName" name="bankName" placeholder="Bank Name" class="input-field">
+                        </div>
+                        <div>
+                            <input type="text" id="accountNumber" name="accountNumber" placeholder="Account Number" class="input-field">
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label for="amountReceive" class="block text-sm font-medium text-gray-700 mb-1">Recipient Will Receive (ZWL/USD)</label>
-                    <input type="text" id="amountReceive" name="amountReceive" value="Calculated automatically" class="input-field bg-gray-100 cursor-not-allowed" readonly>
-                </div>
-                <div>
-                    <label for="purpose" class="block text-sm font-medium text-gray-700 mb-1">Purpose of Transfer</label>
-                    <textarea id="purpose" name="purpose" rows="3" placeholder="e.g., Family support, Gift, Business" class="input-field resize-y"></textarea>
-                </div>
-            </div>
 
-            <button type="submit" class="btn-primary">Send Money Now</button>
-            <div id="responseMessage" class="message-box"></div>
-        </form>
+                <!-- Transaction Details -->
+                <div class="space-y-4 pt-6 border-t border-gray-200">
+                    <h2 class="section-title">Transaction Details</h2>
+                    <div>
+                        <label for="amountSend" class="block text-sm font-medium text-gray-700 mb-1">Amount to Send (USD)</label>
+                        <input type="number" id="amountSend" name="amountSend" placeholder="e.g., 100" min="1" step="0.01" class="input-field" required>
+                    </div>
+                    <div>
+                        <label for="amountReceive" class="block text-sm font-medium text-gray-700 mb-1">Recipient Will Receive (ZWL/USD)</label>
+                        <input type="text" id="amountReceive" name="amountReceive" value="Calculated automatically" class="input-field bg-gray-100 cursor-not-allowed" readonly>
+                    </div>
+                    <div>
+                        <label for="purpose" class="block text-sm font-medium text-gray-700 mb-1">Purpose of Transfer</label>
+                        <textarea id="purpose" name="purpose" rows="3" placeholder="e.g., Family support, Gift, Business" class="input-field resize-y"></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary">Send Money Now</button>
+                <div id="responseMessage" class="message-box"></div>
+            </form>
+        </div>
+
+        <!-- Account Tab Content -->
+        <div id="account" class="tab-content">
+            <h2 class="section-title">Create or Log In to Your Account</h2>
+            <div id="authForm" class="space-y-4">
+                <div>
+                    <label for="accountName" class="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+                    <input type="text" id="accountName" name="accountName" placeholder="Your Name" class="input-field">
+                </div>
+                <div>
+                    <label for="accountEmail" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input type="email" id="accountEmail" name="accountEmail" placeholder="your@email.com" class="input-field" required>
+                </div>
+                <div>
+                    <label for="accountPassword" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                    <input type="password" id="accountPassword" name="accountPassword" placeholder="Minimum 6 characters" class="input-field" required>
+                </div>
+                <button id="createAccountBtn" class="btn-primary">Create New Account</button>
+                <button id="loginAccountBtn" class="btn-secondary">Log In</button>
+                <div id="accountMessage" class="message-box"></div>
+                <div class="loading-spinner" id="authSpinner"></div>
+            </div>
+        </div>
+
+        <!-- Fees Tab Content -->
+        <div id="fees" class="tab-content">
+            <h2 class="section-title">Our Fees</h2>
+            <p class="text-gray-700 mb-4">At Tumira, we strive to offer transparent and competitive fees to ensure your loved ones receive as much as possible.</p>
+            <ul class="list-disc list-inside text-gray-700 space-y-2">
+                <li><strong>Fixed Fee:</strong> A flat fee of $3.00 USD applies to all transfers, regardless of the amount.</li>
+                <li><strong>Exchange Rate Margin:</strong> Our exchange rates are competitive and include a small margin. You'll always see the exact amount your recipient will receive before confirming the transfer.</li>
+                <li><strong>No Hidden Charges:</strong> What you see is what you pay. We believe in full transparency.</li>
+            </ul>
+            <p class="text-gray-600 mt-4 text-sm">Please note that recipient's mobile money or bank may apply their own charges for receiving funds, which are outside of Tumira's control.</p>
+        </div>
+
+        <!-- About Us Tab Content -->
+        <div id="about" class="tab-content">
+            <h2 class="section-title">About Tumira</h2>
+            <p class="text-gray-700 mb-4">Tumira is dedicated to simplifying money transfers to Zimbabwe, making it easier and more affordable for the diaspora to support their families and communities back home.</p>
+            <h3 class="font-semibold text-lg text-gray-800 mb-2">Our Founder: Barachel</h3>
+            <p class="text-gray-700 mb-4">Tumira was founded by Barachel, a visionary with a deep understanding of the challenges faced by individuals sending money across borders. Driven by a passion for financial inclusion and a desire to connect families, Barachel embarked on a mission to create a remittance service that is not only efficient and secure but also truly puts the user first. His commitment to leveraging technology for social good is at the heart of Tumira's mission.</p>
+            <p class="text-gray-700">We are committed to providing a reliable, fast, and user-friendly platform for all your remittance needs.</p>
+        </div>
     </div>
 
-    <script>
+    <script type="module">
+        // Ensure Firebase variables are accessible in this script
+        const firebaseApp = window.firebaseApp;
+        const db = window.db;
+        const auth = window.auth;
+        const appId = window.appId;
+
         // Get references to elements
         const form = document.getElementById('remittanceForm');
         const payoutMethodSelect = document.getElementById('payoutMethod');
@@ -162,29 +392,37 @@
         const amountReceiveInput = document.getElementById('amountReceive');
         const responseMessageDiv = document.getElementById('responseMessage');
 
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        const accountNameInput = document.getElementById('accountName');
+        const accountEmailInput = document.getElementById('accountEmail');
+        const accountPasswordInput = document.getElementById('accountPassword');
+        const createAccountBtn = document.getElementById('createAccountBtn');
+        const loginAccountBtn = document.getElementById('loginAccountBtn');
+        const accountMessageDiv = document.getElementById('accountMessage');
+        const authSpinner = document.getElementById('authSpinner');
+        const logoutButton = document.getElementById('logoutButton');
+
         // Function to show/hide bank details based on payout method
         payoutMethodSelect.addEventListener('change', function() {
             if (this.value === 'bank_transfer') {
                 bankDetailsDiv.classList.remove('hidden');
-                // Make bank details fields required when visible
                 document.getElementById('bankName').setAttribute('required', 'required');
                 document.getElementById('accountNumber').setAttribute('required', 'required');
             } else {
                 bankDetailsDiv.classList.add('hidden');
-                // Remove required attribute when hidden
                 document.getElementById('bankName').removeAttribute('required');
                 document.getElementById('accountNumber').removeAttribute('required');
             }
         });
 
         // Simple exchange rate calculation (for demonstration)
-        // In a real app, this would come from an API
         const exchangeRate = 3000; // Example: 1 USD = 3000 ZWL (or 1 USD = 1 USD if sending USD)
 
         amountSendInput.addEventListener('input', function() {
             const amountUSD = parseFloat(this.value);
             if (!isNaN(amountUSD) && amountUSD > 0) {
-                // Assuming recipient receives in ZWL for mobile money/cash pickup, USD for bank transfer
                 const payoutMethod = payoutMethodSelect.value;
                 let receivedAmount;
                 let currency;
@@ -202,11 +440,15 @@
             }
         });
 
-        // Handle form submission
+        // Handle form submission for remittance
         form.addEventListener('submit', function(event) {
             event.preventDefault(); // Prevent default form submission
 
-            // In a real application, you would collect all form data
+            if (!window.isAuthReady || !auth.currentUser) {
+                displayMessage(responseMessageDiv, 'Please log in or create an account to send money.', 'error');
+                return;
+            }
+
             const formData = {
                 senderName: document.getElementById('senderName').value,
                 senderPhone: document.getElementById('senderPhone').value,
@@ -217,23 +459,146 @@
                 bankName: document.getElementById('bankName').value,
                 accountNumber: document.getElementById('accountNumber').value,
                 amountSend: document.getElementById('amountSend').value,
-                amountReceive: amountReceiveInput.value, // Use the calculated value
-                purpose: document.getElementById('purpose').value
+                amountReceive: amountReceiveInput.value,
+                purpose: document.getElementById('purpose').value,
+                userId: auth.currentUser.uid, // Associate with current user
+                timestamp: new Date()
             };
 
-            // Display a success message (in a real app, this would be after a successful API call)
-            responseMessageDiv.style.display = 'block';
-            responseMessageDiv.textContent = 'Transfer initiated! (This is a demo. No actual money sent.)';
-            responseMessageDiv.style.backgroundColor = '#dbeafe'; // Light blue
-            responseMessageDiv.style.color = '#1e40af'; // Dark blue text
-
-            // You would typically send this formData to your backend API here
+            // In a real application, you would send this formData to your backend API here
             console.log('Form Data:', formData);
-
-            // Optional: Clear form after submission
-            // form.reset();
-            // amountReceiveInput.value = 'Calculated automatically'; // Reset calculated field
+            displayMessage(responseMessageDiv, 'Transfer initiated! (This is a demo. No actual money sent.)', 'success');
         });
+
+        // Tab switching logic
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const targetTab = button.dataset.tab;
+
+                // Deactivate all tabs and content
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.classList.remove('active'));
+
+                // Activate clicked tab and its content
+                button.classList.add('active');
+                document.getElementById(targetTab).classList.add('active');
+            });
+        });
+
+        // Firebase Auth Functions
+        async function handleCreateAccount() {
+            const email = accountEmailInput.value;
+            const password = accountPasswordInput.value;
+            const name = accountNameInput.value;
+
+            if (!email || !password || password.length < 6) {
+                displayMessage(accountMessageDiv, 'Please enter a valid email and a password of at least 6 characters.', 'error');
+                return;
+            }
+
+            authSpinner.style.display = 'block';
+            accountMessageDiv.style.display = 'none';
+
+            try {
+                const userCredential = await window.createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                console.log("User created:", user.uid);
+
+                // Save user profile to Firestore
+                const userProfileRef = window.doc(db, `artifacts/${appId}/users/${user.uid}/profiles`, 'userProfile');
+                await window.setDoc(userProfileRef, {
+                    name: name,
+                    email: email,
+                    createdAt: new Date()
+                });
+                displayMessage(accountMessageDiv, 'Account created successfully! You are now logged in.', 'success');
+                accountNameInput.value = '';
+                accountEmailInput.value = '';
+                accountPasswordInput.value = '';
+            } catch (error) {
+                console.error("Error creating account:", error);
+                let errorMessage = 'Failed to create account.';
+                if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'This email is already in use. Try logging in or use a different email.';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'Password is too weak. Please choose a stronger password.';
+                }
+                displayMessage(accountMessageDiv, errorMessage, 'error');
+            } finally {
+                authSpinner.style.display = 'none';
+            }
+        }
+
+        async function handleLoginAccount() {
+            const email = accountEmailInput.value;
+            const password = accountPasswordInput.value;
+
+            if (!email || !password) {
+                displayMessage(accountMessageDiv, 'Please enter your email and password.', 'error');
+                return;
+            }
+
+            authSpinner.style.display = 'block';
+            accountMessageDiv.style.display = 'none';
+
+            try {
+                await window.signInWithEmailAndPassword(auth, email, password);
+                displayMessage(accountMessageDiv, 'Logged in successfully!', 'success');
+                accountNameInput.value = ''; // Clear name field after login
+                accountEmailInput.value = '';
+                accountPasswordInput.value = '';
+            } catch (error) {
+                console.error("Error logging in:", error);
+                let errorMessage = 'Failed to log in. Please check your email and password.';
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errorMessage = 'Invalid email or password.';
+                }
+                displayMessage(accountMessageDiv, errorMessage, 'error');
+            } finally {
+                authSpinner.style.display = 'none';
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await window.signOut(auth);
+                displayMessage(responseMessageDiv, 'Logged out successfully.', 'success');
+                document.getElementById('user-id-display').textContent = 'Not logged in';
+                document.getElementById('displayUserName').textContent = '';
+                document.getElementById('displayUserEmail').textContent = '';
+                // Switch back to account tab or remittance tab
+                document.querySelector('.tab-button[data-tab="account"]').click();
+            } catch (error) {
+                console.error("Error logging out:", error);
+                displayMessage(responseMessageDiv, 'Failed to log out.', 'error');
+            }
+        }
+
+        // Helper function to display messages
+        function displayMessage(element, message, type) {
+            element.textContent = message;
+            element.classList.remove('error-message', 'success-message');
+            if (type === 'error') {
+                element.classList.add('error-message');
+            } else if (type === 'success') {
+                element.classList.add('success-message');
+            }
+            element.style.display = 'block';
+        }
+
+        // Event listeners for auth buttons
+        createAccountBtn.addEventListener('click', handleCreateAccount);
+        loginAccountBtn.addEventListener('click', handleLoginAccount);
+        logoutButton.addEventListener('click', handleLogout);
+
+        // Initial setup for anonymous user ID display
+        window.onload = function() {
+            // This is handled by onAuthStateChanged in the module script
+            // but ensure the anonymous user ID is displayed if no custom token
+            if (!auth.currentUser && !window.currentUserId) {
+                document.getElementById('user-id-display-anon').textContent = `User ID: ${auth.currentUser?.uid || 'Not authenticated'}`;
+            }
+        };
     </script>
 </body>
 </html>
