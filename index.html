@@ -236,16 +236,29 @@
         import { getAuth, signInAnonymously, signInWithCustomToken, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // --- START: PASTE YOUR FIREBASE CONFIG HERE ---
+        // Get your Firebase project's config from Firebase Console -> Project settings -> Your apps -> Web app
+        const firebaseConfig = {
+        apiKey: "AIzaSyA_Sy72josAAuBc3N8cvgEo2j1Nd0j_uZs",
+        authDomain: "tumiraremit-38564.firebaseapp.com",
+        projectId: "tumiraremit-38564",
+        storageBucket: "tumiraremit-38564.firebasestorage.app",
+        messagingSenderId: "193421797298",
+        appId: "1:193421797298:web:0b3ff6e7d06b0df45d66ab",
+        measurementId: "G-0GZ81MDLX7"
+        };
+        // --- END: PASTE YOUR FIREBASE CONFIG HERE ---
+
+        // The appId used for Firestore collection paths
+        // This should match the appId in your firebaseConfig
+        const appId = firebaseConfig.appId || 'default-app-id';
+
         // Global variables for Firebase (will be initialized in script)
         window.firebaseApp = null;
         window.db = null;
         window.auth = null;
         window.currentUserId = null;
         window.isAuthReady = false; // Flag to indicate if auth state is known
-
-        // Initialize Firebase
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
 
         try {
             window.firebaseApp = initializeApp(firebaseConfig);
@@ -269,7 +282,10 @@
                     document.getElementById('auth-section').classList.remove('hidden');
                     document.getElementById('user-info-section').classList.add('hidden');
                     // Attempt anonymous sign-in if no custom token is provided
-                    if (typeof __initial_auth_token === 'undefined') {
+                    // Note: __initial_auth_token is typically provided by the Canvas environment.
+                    // If running locally without Canvas, this will fallback to anonymous sign-in.
+                    const __initial_auth_token = ""; // Placeholder for local testing, Canvas will override
+                    if (typeof __initial_auth_token === 'undefined' || __initial_auth_token === "") {
                         try {
                             await signInAnonymously(window.auth);
                             console.log("Signed in anonymously.");
@@ -284,14 +300,16 @@
                 console.log("Firebase Auth Ready:", window.isAuthReady);
             });
 
-            // Sign in with custom token if available
-            if (typeof __initial_auth_token !== 'undefined') {
+            // Sign in with custom token if available (for Canvas environment)
+            // Note: __initial_auth_token is typically provided by the Canvas environment.
+            // For local testing, you can leave it as an empty string or remove this block.
+            const __initial_auth_token = ""; // Placeholder for local testing, Canvas will override
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== "") {
                 signInWithCustomToken(window.auth, __initial_auth_token)
                     .then(() => console.log("Signed in with custom token."))
                     .catch(error => console.error("Error signing in with custom token:", error));
             } else {
-                // If no custom token, onAuthStateChanged will handle anonymous sign-in
-                console.log("No initial auth token provided. Will attempt anonymous sign-in.");
+                console.log("No initial auth token provided or token is empty. Will rely on onAuthStateChanged for sign-in.");
             }
 
         } catch (error) {
@@ -304,6 +322,7 @@
         // Function to fetch user profile from Firestore
         async function fetchUserProfile(userId) {
             if (!window.db || !userId) return;
+            // Use the appId from the firebaseConfig for the collection path
             const userDocRef = doc(window.db, `artifacts/${appId}/users/${userId}/profiles`, 'userProfile');
             try {
                 const docSnap = await getDoc(userDocRef);
@@ -484,7 +503,7 @@
         const firebaseApp = window.firebaseApp;
         const db = window.db;
         const auth = window.auth;
-        const appId = window.appId;
+        const appId = window.appId; // This appId is now derived from firebaseConfig.appId
 
         // Get references to elements
         const form = document.getElementById('remittanceForm');
