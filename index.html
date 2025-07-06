@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tumira - Send Money to Zimbabwe</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -229,8 +228,51 @@
             font-size: 0.75rem;
             margin-top: 0.5rem;
         }
+
+        /* Modal for Terms and Conditions */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000; /* Ensure it's on top */
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.75rem;
+            max-width: 90%; /* Responsive width */
+            max-height: 80vh; /* Responsive height */
+            overflow-y: auto; /* Scrollable content */
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        .modal-close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #6b7280;
+        }
+        .modal-close-btn:hover {
+            color: #1f2937;
+        }
     </style>
-    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -239,14 +281,14 @@
         // --- START: PASTE YOUR FIREBASE CONFIG HERE ---
         // Get your Firebase project's config from Firebase Console -> Project settings -> Your apps -> Web app
         const firebaseConfig = {
-  apiKey: "AIzaSyA_Sy72josAAuBc3N8cvgEo2j1Nd0j_uZs",
-  authDomain: "tumiraremit-38564.firebaseapp.com",
-  projectId: "tumiraremit-38564",
-  storageBucket: "tumiraremit-38564.firebasestorage.app",
-  messagingSenderId: "193421797298",
-  appId: "1:193421797298:web:0b3ff6e7d06b0df45d66ab",
-  measurementId: "G-0GZ81MDLX7"
-};
+            apiKey: "AIzaSyA_Sy72josAAuBc3N8cvgEo2j1Nd0j_uZs",
+            authDomain: "tumiraremit-38564.firebaseapp.com",
+            projectId: "tumiraremit-38564",
+            storageBucket: "tumiraremit-38564.firebasestorage.app",
+            messagingSenderId: "193421797298",
+            appId: "1:193421797298:web:0b3ff6e7d06b0df45d66ab",
+            measurementId: "G-0GZ81MDLX7"
+        };
 
         // --- END: PASTE YOUR FIREBASE CONFIG HERE ---
 
@@ -360,7 +402,6 @@
         <h1 class="text-4xl font-extrabold text-center text-gray-900 mb-8 sm:text-5xl">Tumira</h1>
         <p class="text-center text-gray-600 mb-8 text-base sm:text-lg">Send money securely and easily to Zimbabwe.</p>
 
-        <!-- Navigation Tabs -->
         <div class="tab-buttons-container">
             <button class="tab-button active" data-tab="remittance">Send Money</button>
             <button class="tab-button" data-tab="account">Account</button>
@@ -368,7 +409,6 @@
             <button class="tab-button" data-tab="about">About Us</button>
         </div>
 
-        <!-- User Info / Auth Section -->
         <div id="user-info-section" class="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm hidden">
             <p class="text-sm font-semibold text-gray-700">Welcome, <span id="displayUserName"></span>!</p>
             <p class="text-xs text-gray-500" id="displayUserEmail"></p>
@@ -381,10 +421,8 @@
             <p class="text-xs text-gray-500 mt-1 text-center" id="user-id-display-anon">User ID: Loading...</p>
         </div>
 
-        <!-- Remittance Form Tab Content -->
         <div id="remittance" class="tab-content active">
             <form id="remittanceForm" class="space-y-6">
-                <!-- Sender Details -->
                 <div class="space-y-4">
                     <h2 class="section-title">Your Details</h2>
                     <div>
@@ -401,7 +439,6 @@
                     </div>
                 </div>
 
-                <!-- Recipient Details -->
                 <div class="space-y-4 pt-6 border-t border-gray-200">
                     <h2 class="section-title">Recipient Details</h2>
                     <div>
@@ -417,8 +454,8 @@
                         <select id="payoutMethod" name="payoutMethod" class="input-field" required>
                             <option value="">Select Payout Method</option>
                             <option value="mobile_money">Mobile Money (EcoCash, OneMoney)</option>
-                            <option value="bank_transfer">Bank Transfer</option>
-                            <option value="cash_pickup">Cash Pickup</option>
+                            <option value="bank_transfer">Bank Transfer (USD)</option>
+                            <option value="cash_pickup">Cash Pickup (USD or ZWL)</option>
                         </select>
                     </div>
                     <div id="bankDetails" class="space-y-4 hidden">
@@ -432,7 +469,6 @@
                     </div>
                 </div>
 
-                <!-- Transaction Details -->
                 <div class="space-y-4 pt-6 border-t border-gray-200">
                     <h2 class="section-title">Transaction Details</h2>
                     <div>
@@ -440,7 +476,7 @@
                         <input type="number" id="amountSend" name="amountSend" placeholder="e.g., 100" min="1" step="0.01" class="input-field" required>
                     </div>
                     <div>
-                        <label for="amountReceive" class="block text-sm font-medium text-gray-700 mb-1">Recipient Will Receive (ZWL/USD)</label>
+                        <label for="amountReceive" class="block text-sm font-medium text-gray-700 mb-1">Recipient Will Receive</label>
                         <input type="text" id="amountReceive" name="amountReceive" value="Calculated automatically" class="input-field bg-gray-100 cursor-not-allowed" readonly>
                     </div>
                     <div>
@@ -454,7 +490,6 @@
             </form>
         </div>
 
-        <!-- Account Tab Content -->
         <div id="account" class="tab-content">
             <h2 class="section-title">Create or Log In to Your Account</h2>
             <div id="authForm" class="space-y-4">
@@ -477,7 +512,6 @@
             </div>
         </div>
 
-        <!-- Fees Tab Content -->
         <div id="fees" class="tab-content">
             <h2 class="section-title">Our Fees</h2>
             <p class="text-gray-700 mb-4">At Tumira, we strive to offer transparent and competitive fees to ensure your loved ones receive as much as possible.</p>
@@ -489,13 +523,73 @@
             <p class="text-gray-600 mt-4 text-sm">Please note that recipient's mobile money or bank may apply their own charges for receiving funds, which are outside of Tumira's control.</p>
         </div>
 
-        <!-- About Us Tab Content -->
         <div id="about" class="tab-content">
             <h2 class="section-title">About Tumira</h2>
             <p class="text-gray-700 mb-4">Tumira is dedicated to simplifying money transfers to Zimbabwe, making it easier and more affordable for the diaspora to support their families and communities back home.</p>
             <h3 class="font-semibold text-lg text-gray-800 mb-2">Our Founder: Barachel</h3>
             <p class="text-gray-700 mb-4">Tumira was founded by Barachel, a visionary with a deep understanding of the challenges faced by individuals sending money across borders. Driven by a passion for financial inclusion and a desire to connect families, Barachel embarked on a mission to create a remittance service that is not only efficient and secure but also truly puts the user first. His commitment to leveraging technology for social good is at the heart of Tumira's mission.</p>
             <p class="text-gray-700">We are committed to providing a reliable, fast, and user-friendly platform for all your remittance needs.</p>
+        </div>
+
+        <div class="mt-8 text-center text-gray-500 text-sm">
+            &copy; 2024 Tumira. All rights reserved. |
+            <a href="#" id="viewTermsLink" class="text-blue-600 hover:underline">Terms and Conditions</a>
+        </div>
+    </div>
+
+    <div id="termsModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="modal-close-btn" id="closeTermsModal">&times;</button>
+            <h2 class="text-2xl font-bold text-gray-800 mb-4 text-center">Terms and Conditions</h2>
+            <div class="text-gray-700 text-sm md:text-base space-y-4">
+                <p>Welcome to Tumira! By using our website and services, you agree to comply with and be bound by the following terms and conditions of use. Please review these terms carefully.</p>
+
+                <h3 class="font-semibold text-lg">1. Acceptance of Terms</h3>
+                <p>By accessing or using Tumira (the "Service"), you agree to be bound by these Terms and Conditions ("Terms"), our Privacy Policy, and all applicable laws and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing this site.</p>
+
+                <h3 class="font-semibold text-lg">2. Service Description</h3>
+                <p>Tumira provides an online platform that facilitates money transfers from users to recipients in Zimbabwe. Our service is designed to be secure, fast, and transparent. We are not a bank or financial institution but a payment service provider.</p>
+
+                <h3 class="font-semibold text-lg">3. User Responsibilities</h3>
+                <ul class="list-disc list-inside space-y-1 ml-4">
+                    <li>You must provide accurate, current, and complete information when registering and using our Service.</li>
+                    <li>You are responsible for maintaining the confidentiality of your account password and for all activities that occur under your account.</li>
+                    <li>You must only send money to recipients you know and trust. Tumira is not responsible for disputes with recipients.</li>
+                    <li>You must comply with all applicable laws and regulations, including anti-money laundering (AML) and counter-terrorism financing (CTF) laws.</li>
+                </ul>
+
+                <h3 class="font-semibold text-lg">4. Fees and Exchange Rates</h3>
+                <p>Our fees and exchange rates are clearly displayed before you confirm any transaction. By initiating a transfer, you agree to the applied fees and exchange rates. We reserve the right to change our fees and exchange rates at any time without prior notice, though changes will not affect transactions already in progress.</p>
+
+                <h3 class="font-semibold text-lg">5. Transaction Limits</h3>
+                <p>We may impose limits on the amount of money you can send or receive through our Service. These limits may vary based on your verification status, payout method, and other factors. We reserve the right to change these limits at our discretion.</p>
+
+                <h3 class="font-semibold text-lg">6. Prohibited Activities</h3>
+                <p>You agree not to use the Service for any illegal, fraudulent, or unauthorized purposes, including but not limited to:</p>
+                <ul class="list-disc list-inside space-y-1 ml-4">
+                    <li>Money laundering or terrorist financing.</li>
+                    <li>Funding illegal activities.</li>
+                    <li>Sending money on behalf of a third party without proper authorization.</li>
+                    <li>Sending money to yourself to circumvent foreign exchange controls.</li>
+                </ul>
+
+                <h3 class="font-semibold text-lg">7. Disclaimer of Warranties</h3>
+                <p>The Service is provided "as is" and "as available" without any warranties of any kind, either express or implied, including, but not limited to, implied warranties of merchantability, fitness for a particular purpose, or non-infringement.</p>
+
+                <h3 class="font-semibold text-lg">8. Limitation of Liability</h3>
+                <p>In no event shall Tumira, its directors, employees, or agents be liable for any indirect, incidental, special, consequential, or punitive damages, including without limitation, loss of profits, data, use, goodwill, or other intangible losses, resulting from (i) your access to or use of or inability to access or use the Service; (ii) any conduct or content of any third party on the Service; (iii) any content obtained from the Service; and (iv) unauthorized access, use or alteration of your transmissions or content, whether based on warranty, contract, tort (including negligence) or any other legal theory, whether or not we have been informed of the possibility of such damage, and even if a remedy set forth herein is found to have failed of its essential purpose.</p>
+
+                <h3 class="font-semibold text-lg">9. Governing Law</h3>
+                <p>These Terms shall be governed and construed in accordance with the laws of [Your Jurisdiction, e.g., Delaware, USA], without regard to its conflict of law provisions.</p>
+
+                <h3 class="font-semibold text-lg">10. Changes to Terms</h3>
+                <p>We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision is material, we will provide at least 30 days' notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion.</p>
+
+                <p>By continuing to access or use our Service after those revisions become effective, you agree to be bound by the revised terms. If you do not agree to the new terms, please stop using the Service.</p>
+
+                <h3 class="font-semibold text-lg">Contact Us</h3>
+                <p>If you have any questions about these Terms, please contact us at support@tumira.com.</p>
+            </div>
         </div>
     </div>
 
@@ -527,6 +621,25 @@
         const authSpinner = document.getElementById('authSpinner');
         const logoutButton = document.getElementById('logoutButton');
 
+        const termsModal = document.getElementById('termsModal');
+        const viewTermsLink = document.getElementById('viewTermsLink');
+        const closeTermsModalBtn = document.getElementById('closeTermsModal');
+
+        // Helper function to display messages
+        function displayMessage(element, message, type) {
+            element.textContent = message;
+            element.classList.remove('error-message', 'success-message');
+            if (type === 'error') {
+                element.classList.add('error-message');
+            } else if (type === 'success') {
+                element.classList.add('success-message');
+            }
+            element.style.display = 'block';
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000); // Hide after 5 seconds
+        }
+
         // Function to show/hide bank details based on payout method
         payoutMethodSelect.addEventListener('change', function() {
             if (this.value === 'bank_transfer') {
@@ -538,37 +651,66 @@
                 document.getElementById('bankName').removeAttribute('required');
                 document.getElementById('accountNumber').removeAttribute('required');
             }
+            // Recalculate amount receive when payout method changes
+            updateAmountReceive();
         });
 
-        // Simple exchange rate calculation (for demonstration)
-        const exchangeRate = 3000; // Example: 1 USD = 3000 ZWL (or 1 USD = 1 USD if sending USD)
+        // Exchange rate calculation (for demonstration)
+        // Note: In a real app, this would come from a secure backend API.
+        const exchangeRates = {
+            'ZWL': 3000, // Example: 1 USD = 3000 ZWL
+            'USD': 1     // 1 USD = 1 USD (for bank transfer/cash pickup in USD)
+        };
+        const fixedFee = 3.00; // Example fixed fee
 
-        amountSendInput.addEventListener('input', function() {
-            const amountUSD = parseFloat(this.value);
+        function updateAmountReceive() {
+            const amountUSD = parseFloat(amountSendInput.value);
+            const payoutMethod = payoutMethodSelect.value;
+            let receivedAmount = 0;
+            let currency = 'N/A';
+
             if (!isNaN(amountUSD) && amountUSD > 0) {
-                const payoutMethod = payoutMethodSelect.value;
-                let receivedAmount;
-                let currency;
+                // Deduct fixed fee from the amount sent
+                const netAmount = amountUSD - fixedFee;
+                if (netAmount <= 0) {
+                    amountReceiveInput.value = 'Amount too low after fee';
+                    return;
+                }
 
                 if (payoutMethod === 'bank_transfer') {
-                    receivedAmount = amountUSD;
+                    // Assuming bank transfer receives USD directly
+                    receivedAmount = netAmount;
                     currency = 'USD';
-                } else {
-                    receivedAmount = amountUSD * exchangeRate;
-                    currency = 'ZWL';
+                } else if (payoutMethod === 'mobile_money' || payoutMethod === 'cash_pickup') {
+                    // For mobile money and cash pickup, convert to ZWL using the rate
+                    // Or, if cash pickup is in USD, keep it USD
+                    // For simplicity, let's assume mobile money is ZWL and cash pickup can be either
+                    if (payoutMethod === 'mobile_money') {
+                        receivedAmount = netAmount * exchangeRates['ZWL'];
+                        currency = 'ZWL';
+                    } else if (payoutMethod === 'cash_pickup') {
+                        // For cash pickup, give the user an option or default to USD
+                        // For this demo, let's assume it's USD for cash pickup for simplicity
+                        receivedAmount = netAmount;
+                        currency = 'USD';
+                    }
                 }
                 amountReceiveInput.value = `${receivedAmount.toFixed(2)} ${currency}`;
             } else {
                 amountReceiveInput.value = 'Calculated automatically';
             }
-        });
+        }
+
+        amountSendInput.addEventListener('input', updateAmountReceive);
+        // Initial calculation on load
+        updateAmountReceive();
 
         // Handle form submission for remittance
-        form.addEventListener('submit', function(event) {
+        form.addEventListener('submit', async function(event) {
             event.preventDefault(); // Prevent default form submission
 
             if (!window.isAuthReady || !auth.currentUser) {
-                displayMessage(responseMessageDiv, 'Please log in or create an account to send money.', 'error');
+                displayMessage(responseMessageDiv, 'Please kindly log in or create an account to proceed with sending money. Thank you!', 'error');
                 return;
             }
 
@@ -581,16 +723,73 @@
                 payoutMethod: document.getElementById('payoutMethod').value,
                 bankName: document.getElementById('bankName').value,
                 accountNumber: document.getElementById('accountNumber').value,
-                amountSend: document.getElementById('amountSend').value,
-                amountReceive: amountReceiveInput.value,
+                amountSend: parseFloat(document.getElementById('amountSend').value),
+                amountReceive: amountReceiveInput.value, // This includes currency (e.g., "300000.00 ZWL")
                 purpose: document.getElementById('purpose').value,
                 userId: auth.currentUser.uid, // Associate with current user
-                timestamp: new Date()
+                timestamp: new Date().toISOString() // Store timestamp as ISO string
             };
 
+            // Basic validation check for required fields before proceeding
+            const requiredFields = ['senderName', 'senderPhone', 'recipientName', 'recipientPhone', 'payoutMethod', 'amountSend'];
+            let allFieldsFilled = true;
+            for (const fieldId of requiredFields) {
+                const field = document.getElementById(fieldId);
+                if (!field.value) {
+                    allFieldsFilled = false;
+                    field.classList.add('border-red-500'); // Highlight missing field
+                } else {
+                    field.classList.remove('border-red-500');
+                }
+            }
+            if (formData.payoutMethod === 'bank_transfer') {
+                if (!formData.bankName || !formData.accountNumber) {
+                    allFieldsFilled = false;
+                    if (!formData.bankName) document.getElementById('bankName').classList.add('border-red-500');
+                    if (!formData.accountNumber) document.getElementById('accountNumber').classList.add('border-red-500');
+                } else {
+                    document.getElementById('bankName').classList.remove('border-red-500');
+                    document.getElementById('accountNumber').classList.remove('border-red-500');
+                }
+            }
+
+            if (!allFieldsFilled) {
+                displayMessage(responseMessageDiv, 'Please fill in all the required fields before submitting your transfer. Thank you!', 'error');
+                return;
+            }
+            if (formData.amountSend <= fixedFee) {
+                 displayMessage(responseMessageDiv, `The amount to send must be greater than the fixed fee ($${fixedFee.toFixed(2)}). Please adjust your amount.`, 'error');
+                 return;
+             }
+
+
+            displayMessage(responseMessageDiv, 'Processing your transfer... Please wait kindly.', 'message-box'); // Show a neutral message initially
+
             // In a real application, you would send this formData to your backend API here
-            console.log('Form Data:', formData);
-            displayMessage(responseMessageDiv, 'Transfer initiated! (This is a demo. No actual money sent.)', 'success');
+            // For this demo, we'll simulate a successful response after a short delay
+            console.log('Attempting to send money with data:', formData);
+
+            try {
+                // Simulate API call delay
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Save transaction to Firestore (optional, for demo tracking)
+                // In a real system, transactions would be managed by a secure backend
+                if (db && auth.currentUser) {
+                    const transactionsCollectionRef = window.collection(db, `artifacts/${appId}/users/${auth.currentUser.uid}/transactions`);
+                    const transactionDocRef = window.doc(transactionsCollectionRef); // Auto-generate document ID
+                    await window.setDoc(transactionDocRef, formData);
+                    console.log("Transaction saved to Firestore:", transactionDocRef.id);
+                }
+
+                displayMessage(responseMessageDiv, 'Wonderful! Your transfer request has been initiated successfully. We will notify you once it’s complete!', 'success');
+                form.reset(); // Clear form fields
+                updateAmountReceive(); // Reset calculated amount display
+                bankDetailsDiv.classList.add('hidden'); // Hide bank details if they were shown
+            } catch (error) {
+                console.error('Error initiating transfer:', error);
+                displayMessage(responseMessageDiv, `Oops! Something went wrong while initiating your transfer: ${error.message}. Please try again shortly.`, 'error');
+            }
         });
 
         // Tab switching logic
@@ -615,7 +814,7 @@
             const name = accountNameInput.value; // Get the name from input
 
             if (!email || !password || password.length < 6) {
-                displayMessage(accountMessageDiv, 'Please enter a valid email and a password of at least 6 characters.', 'error');
+                displayMessage(accountMessageDiv, 'Please enter a valid email and a password of at least 6 characters. Thank you!', 'error');
                 return;
             }
 
@@ -630,48 +829,37 @@
                 // Save user profile to Firestore
                 const userProfileRef = window.doc(db, `artifacts/${appId}/users/${user.uid}/profiles`, 'userProfile');
                 await window.setDoc(userProfileRef, {
-                    name: name, // Save the name
+                    name: name,
                     email: email,
-                    createdAt: new Date()
+                    createdAt: new Date().toISOString()
                 });
-
-                displayMessage(accountMessageDiv, 'Account created successfully! You are now logged in.', 'success');
-                
-                // Update display immediately
-                document.getElementById('displayUserName').textContent = name || 'User';
-                document.getElementById('displayUserEmail').textContent = email;
-                document.getElementById('user-id-display').textContent = `User ID: ${user.uid}`;
-
-                // Hide the auth form and show user info section
-                authForm.classList.add('hidden'); // Hide the account creation form
-                document.getElementById('auth-section').classList.add('hidden'); // Hide the general auth prompt
-                document.getElementById('user-info-section').classList.remove('hidden'); // Show the user info
-
-                // Clear form fields
-                accountNameInput.value = '';
+                console.log("User profile saved for:", user.uid);
+                displayMessage(accountMessageDiv, 'Fantastic! Your account has been successfully created and you are now logged in. Welcome to Tumira!', 'success');
+                accountNameInput.value = ''; // Clear fields
                 accountEmailInput.value = '';
                 accountPasswordInput.value = '';
-
             } catch (error) {
                 console.error("Error creating account:", error);
-                let errorMessage = 'Failed to create account.';
+                let errorMessage = 'An unexpected error occurred. Please try again.';
                 if (error.code === 'auth/email-already-in-use') {
-                    errorMessage = 'This email is already in use. Try logging in or use a different email.';
+                    errorMessage = 'This email is already registered. Please try logging in or use a different email.';
                 } else if (error.code === 'auth/weak-password') {
-                    errorMessage = 'Password is too weak. Please choose a stronger password.';
+                    errorMessage = 'The password is too weak. Please choose a stronger password.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'The email address is not valid.';
                 }
-                displayMessage(accountMessageDiv, errorMessage, 'error');
+                displayMessage(accountMessageDiv, `We encountered an issue: ${errorMessage} Please try again.`, 'error');
             } finally {
                 authSpinner.style.display = 'none';
             }
         }
 
-        async function handleLoginAccount() {
+        async function handleLogin() {
             const email = accountEmailInput.value;
             const password = accountPasswordInput.value;
 
             if (!email || !password) {
-                displayMessage(accountMessageDiv, 'Please enter your email and password.', 'error');
+                displayMessage(accountMessageDiv, 'Please enter both your email and password to log in. Thank you!', 'error');
                 return;
             }
 
@@ -679,31 +867,22 @@
             accountMessageDiv.style.display = 'none';
 
             try {
-                const userCredential = await window.signInWithEmailAndPassword(auth, email, password);
-                const user = userCredential.user;
-
-                displayMessage(accountMessageDiv, 'Logged in successfully!', 'success');
-                
-                // Fetch and update user profile immediately after login
-                await fetchUserProfile(user.uid);
-
-                // Hide the auth form and show user info section
-                authForm.classList.add('hidden'); // Hide the account creation form
-                document.getElementById('auth-section').classList.add('hidden'); // Hide the general auth prompt
-                document.getElementById('user-info-section').classList.remove('hidden'); // Show the user info
-
-                // Clear form fields
-                accountNameInput.value = ''; // Clear name field after login
-                accountEmailInput.value = '';
+                await window.signInWithEmailAndPassword(auth, email, password);
+                console.log("User logged in successfully.");
+                displayMessage(accountMessageDiv, 'Welcome back! You have successfully logged in. We are delighted to see you.', 'success');
+                accountEmailInput.value = ''; // Clear fields
                 accountPasswordInput.value = '';
-
             } catch (error) {
                 console.error("Error logging in:", error);
-                let errorMessage = 'Failed to log in. Please check your email and password.';
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                    errorMessage = 'Invalid email or password.';
+                let errorMessage = 'An unexpected error occurred. Please try again.';
+                if (error.code === 'auth/invalid-credential') {
+                    errorMessage = 'The email or password you entered is incorrect. Please double-check and try again.';
+                } else if (error.code === 'auth/user-not-found') {
+                    errorMessage = 'No user found with this email. Please consider creating an account.';
+                } else if (error.code === 'auth/wrong-password') {
+                    errorMessage = 'The password you entered is incorrect. Please try again.';
                 }
-                displayMessage(accountMessageDiv, errorMessage, 'error');
+                displayMessage(accountMessageDiv, `We encountered an issue: ${errorMessage} Please try again.`, 'error');
             } finally {
                 authSpinner.style.display = 'none';
             }
@@ -712,49 +891,45 @@
         async function handleLogout() {
             try {
                 await window.signOut(auth);
-                displayMessage(responseMessageDiv, 'Logged out successfully.', 'success');
-                
-                // Clear display and show auth section
-                document.getElementById('user-id-display').textContent = 'Not logged in';
-                document.getElementById('displayUserName').textContent = '';
-                document.getElementById('displayUserEmail').textContent = '';
-                document.getElementById('user-info-section').classList.add('hidden'); // Hide user info
-                document.getElementById('auth-section').classList.remove('hidden'); // Show general auth prompt
-                authForm.classList.remove('hidden'); // Show the account creation form
-
-                // Switch back to account tab (or remittance if desired)
-                document.querySelector('.tab-button[data-tab="account"]').click();
+                console.log("User logged out.");
+                displayMessage(accountMessageDiv, 'You have been successfully logged out. We look forward to seeing you again soon!', 'success');
+                // Ensure auth section is visible and user info section is hidden
+                document.getElementById('auth-section').classList.remove('hidden');
+                document.getElementById('user-info-section').classList.add('hidden');
             } catch (error) {
                 console.error("Error logging out:", error);
-                displayMessage(responseMessageDiv, 'Failed to log out.', 'error');
+                displayMessage(accountMessageDiv, `We couldn't log you out right now: ${error.message}. Please try again.`, 'error');
             }
         }
 
-        // Helper function to display messages
-        function displayMessage(element, message, type) {
-            element.textContent = message;
-            element.classList.remove('error-message', 'success-message');
-            if (type === 'error') {
-                element.classList.add('error-message');
-            } else if (type === 'success') {
-                element.classList.add('success-message');
-            }
-            element.style.display = 'block';
-        }
-
-        // Event listeners for auth buttons
+        // Attach event listeners for auth buttons
         createAccountBtn.addEventListener('click', handleCreateAccount);
-        loginAccountBtn.addEventListener('click', handleLoginAccount);
+        loginAccountBtn.addEventListener('click', handleLogin);
         logoutButton.addEventListener('click', handleLogout);
 
-        // Initial setup for anonymous user ID display and auth state
-        window.onload = function() {
-            // This is handled by onAuthStateChanged in the module script
-            // but ensure the anonymous user ID is displayed if no custom token
-            if (!auth.currentUser && !window.currentUserId) {
+        // Terms and Conditions Modal Logic
+        viewTermsLink.addEventListener('click', function(e) {
+            e.preventDefault(); // Prevent default link behavior
+            termsModal.classList.add('active');
+        });
+
+        closeTermsModalBtn.addEventListener('click', function() {
+            termsModal.classList.remove('active');
+        });
+
+        // Close modal if user clicks outside the content
+        termsModal.addEventListener('click', function(e) {
+            if (e.target === termsModal) {
+                termsModal.classList.remove('active');
+            }
+        });
+
+        // Ensure that when switching to account tab, the anonymous ID is updated if available
+        document.querySelector('.tab-button[data-tab="account"]').addEventListener('click', () => {
+            if (!auth.currentUser) {
                 document.getElementById('user-id-display-anon').textContent = `User ID: ${auth.currentUser?.uid || 'Not authenticated'}`;
             }
-        };
+        });
     </script>
 </body>
 </html>
