@@ -216,17 +216,28 @@
         }
 
         /* User Info / Auth Section styling */
-        #user-info-section, #auth-section {
+        #user-info-section {
             padding: 1.25rem;
             margin-bottom: 1.5rem;
             border-radius: 0.75rem; /* Slightly more rounded */
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
             text-align: center;
+            background-color: #e0f2fe; /* Light blue background for welcome */
         }
+        #auth-section {
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            text-align: center;
+            background-color: #f5f5f5; /* Light gray for auth prompt */
+        }
+
         #user-id-display, #user-id-display-anon {
             word-break: break-all; /* Ensure long IDs wrap */
             font-size: 0.75rem;
             margin-top: 0.5rem;
+            display: none; /* Hidden by default as per new requirements */
         }
 
         /* Modal for Terms and Conditions */
@@ -310,30 +321,43 @@
 
             // Listen for authentication state changes
             onAuthStateChanged(window.auth, async (user) => {
+                const sendMoneySection = document.getElementById('sendMoneySection');
+                const authSection = document.getElementById('auth-section');
+                const userInfoSection = document.getElementById('user-info-section');
+                const sendMoneyButton = document.getElementById('toggleRemittanceFormBtn');
+                const estimateFeesSection = document.getElementById('estimateFeesSection');
+
                 if (user) {
                     window.currentUserId = user.uid;
                     console.log("User is signed in:", user.uid);
-                    document.getElementById('user-id-display').textContent = `User ID: ${user.uid}`;
-                    document.getElementById('auth-section').classList.add('hidden');
-                    document.getElementById('user-info-section').classList.remove('hidden');
+                    // document.getElementById('user-id-display').textContent = `User ID: ${user.uid}`; // Hide User ID as per new req
+                    
+                    authSection.classList.add('hidden');
+                    userInfoSection.classList.remove('hidden');
+                    sendMoneySection.classList.remove('hidden'); // Show Send Money section for logged-in users
+                    estimateFeesSection.classList.add('hidden'); // Hide estimate fees when logged in (can be re-enabled if desired)
+
                     // Fetch user profile if it exists
                     await fetchUserProfile(user.uid);
                 } else {
                     window.currentUserId = null;
                     console.log("No user is signed in.");
-                    document.getElementById('user-id-display').textContent = 'Not logged in';
-                    document.getElementById('auth-section').classList.remove('hidden');
-                    document.getElementById('user-info-section').classList.add('hidden');
+                    // document.getElementById('user-id-display').textContent = 'Not logged in'; // Hide User ID
+                    
+                    authSection.classList.remove('hidden');
+                    userInfoSection.classList.add('hidden');
+                    sendMoneySection.classList.add('hidden'); // Hide Send Money section if not logged in
+                    document.getElementById('remittanceForm').classList.add('hidden'); // Ensure form is hidden
+                    sendMoneyButton.textContent = 'Send Money'; // Reset button text
+                    estimateFeesSection.classList.remove('hidden'); // Show estimate fees when logged out
+
                     // Attempt anonymous sign-in if no custom token is provided
-                    // Note: __initial_auth_token is typically provided by the Canvas environment.
-                    // If running locally without Canvas, this will fallback to anonymous sign-in.
                     const __initial_auth_token = ""; // Placeholder for local testing, Canvas will override
                     if (typeof __initial_auth_token === 'undefined' || __initial_auth_token === "") {
                         try {
                             await signInAnonymously(window.auth);
-                            console.log("Signed in anonymously.");
-                            // Update anonymous user ID display immediately after sign-in
-                            document.getElementById('user-id-display-anon').textContent = `User ID: ${window.auth.currentUser?.uid || 'Not authenticated'}`;
+                            console.log("Signed in anonymously for fee estimation.");
+                            // document.getElementById('user-id-display-anon').textContent = `User ID: ${window.auth.currentUser?.uid || 'Not authenticated'}`; // Hide User ID
                         } catch (error) {
                             console.error("Error signing in anonymously:", error);
                         }
@@ -344,8 +368,6 @@
             });
 
             // Sign in with custom token if available (for Canvas environment)
-            // Note: __initial_auth_token is typically provided by the Canvas environment.
-            // For local testing, you can leave it as an empty string or remove this block.
             const __initial_auth_token = ""; // Placeholder for local testing, Canvas will override
             if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token !== "") {
                 signInWithCustomToken(window.auth, __initial_auth_token)
@@ -365,7 +387,6 @@
         // Function to fetch user profile from Firestore
         async function fetchUserProfile(userId) {
             if (!window.db || !userId) return;
-            // Use the appId from the firebaseConfig for the collection path
             const userDocRef = doc(window.db, `artifacts/${appId}/users/${userId}/profiles`, 'userProfile');
             try {
                 const docSnap = await getDoc(userDocRef);
@@ -403,91 +424,121 @@
         <p class="text-center text-gray-600 mb-8 text-base sm:text-lg">Send money securely and easily to Zimbabwe.</p>
 
         <div class="tab-buttons-container">
-            <button class="tab-button active" data-tab="remittance">Send Money</button>
+            <button class="tab-button active" data-tab="home">Home</button>
             <button class="tab-button" data-tab="account">Account</button>
             <button class="tab-button" data-tab="fees">Fees</button>
             <button class="tab-button" data-tab="about">About Us</button>
         </div>
 
-        <div id="user-info-section" class="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm hidden">
-            <p class="text-sm font-semibold text-gray-700">Welcome, <span id="displayUserName"></span>!</p>
-            <p class="text-xs text-gray-500" id="displayUserEmail"></p>
-            <p class="text-xs text-gray-500 mt-1" id="user-id-display">User ID: Loading...</p>
-            <button id="logoutButton" class="btn-secondary mt-3 text-sm py-2 px-4">Logout</button>
-        </div>
+        <div id="home" class="tab-content active">
+            <div id="user-info-section" class="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm hidden">
+                <p class="text-sm font-semibold text-gray-700">Welcome, <span id="displayUserName" class="font-bold text-blue-700"></span>!</p>
+                <p class="text-xs text-gray-500" id="displayUserEmail"></p>
+                <button id="logoutButton" class="btn-secondary mt-3 text-sm py-2 px-4">Logout</button>
+            </div>
 
-        <div id="auth-section" class="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm">
-            <p class="text-sm text-gray-700 text-center">Please create an account or log in to use all features.</p>
-            <p class="text-xs text-gray-500 mt-1 text-center" id="user-id-display-anon">User ID: Loading...</p>
-        </div>
-
-        <div id="remittance" class="tab-content active">
-            <form id="remittanceForm" class="space-y-6">
-                <div class="space-y-4">
-                    <h2 class="section-title">Your Details</h2>
-                    <div>
-                        <label for="senderName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
-                        <input type="text" id="senderName" name="senderName" placeholder="Your Full Name" class="input-field" required>
-                    </div>
-                    <div>
-                        <label for="senderPhone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-                        <input type="tel" id="senderPhone" name="senderPhone" placeholder="+1234567890" class="input-field" required>
-                    </div>
-                    <div>
-                        <label for="senderEmail" class="block text-sm font-medium text-gray-700 mb-1">Email Address (Optional)</label>
-                        <input type="email" id="senderEmail" name="senderEmail" placeholder="you@example.com" class="input-field">
-                    </div>
+            <div id="auth-section" class="mb-6 p-4 bg-gray-50 rounded-lg shadow-sm">
+                <p class="text-base text-gray-700 text-center font-medium">To enjoy our full features, please:</p>
+                <div class="mt-4 flex flex-col sm:flex-row gap-3 justify-center">
+                    <button class="btn-primary sm:w-auto" onclick="document.querySelector('.tab-button[data-tab=\'account\']').click();">Log In or Create a Tumira Account</button>
+                </div>
                 </div>
 
-                <div class="space-y-4 pt-6 border-t border-gray-200">
-                    <h2 class="section-title">Recipient Details</h2>
+            <div id="sendMoneySection" class="hidden">
+                <h2 class="section-title">Ready to Send Money?</h2>
+                <p class="text-center text-gray-600 mb-6">Click the button below to start your transfer.</p>
+                <button id="toggleRemittanceFormBtn" class="btn-primary">Send Money</button>
+
+                <form id="remittanceForm" class="space-y-6 mt-6 hidden">
+                    <div class="space-y-4">
+                        <h3 class="section-title">Your Details</h3>
+                        <div>
+                            <label for="senderName" class="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                            <input type="text" id="senderName" name="senderName" placeholder="Your Full Name" class="input-field" required>
+                        </div>
+                        <div>
+                            <label for="senderPhone" class="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                            <input type="tel" id="senderPhone" name="senderPhone" placeholder="+1234567890" class="input-field" required>
+                        </div>
+                        <div>
+                            <label for="senderEmail" class="block text-sm font-medium text-gray-700 mb-1">Email Address (Optional)</label>
+                            <input type="email" id="senderEmail" name="senderEmail" placeholder="you@example.com" class="input-field">
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 pt-6 border-t border-gray-200">
+                        <h3 class="section-title">Recipient Details</h3>
+                        <div>
+                            <label for="recipientName" class="block text-sm font-medium text-gray-700 mb-1">Recipient Full Name</label>
+                            <input type="text" id="recipientName" name="recipientName" placeholder="Recipient's Full Name" class="input-field" required>
+                        </div>
+                        <div>
+                            <label for="recipientPhone" class="block text-sm font-medium text-gray-700 mb-1">Recipient Phone Number (Zimbabwe)</label>
+                            <input type="tel" id="recipientPhone" name="recipientPhone" placeholder="+2637xxxxxxxxx" class="input-field" required>
+                        </div>
+                        <div>
+                            <label for="payoutMethod" class="block text-sm font-medium text-gray-700 mb-1">Payout Method</label>
+                            <select id="payoutMethod" name="payoutMethod" class="input-field" required>
+                                <option value="">Select Payout Method</option>
+                                <option value="mobile_money">Mobile Money (EcoCash, OneMoney)</option>
+                                <option value="bank_transfer">Bank Transfer (USD)</option>
+                                <option value="cash_pickup">Cash Pickup (USD or ZWL)</option>
+                            </select>
+                        </div>
+                        <div id="bankDetails" class="space-y-4 hidden">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Bank Details</label>
+                            <div>
+                                <input type="text" id="bankName" name="bankName" placeholder="Bank Name" class="input-field">
+                            </div>
+                            <div>
+                                <input type="text" id="accountNumber" name="accountNumber" placeholder="Account Number" class="input-field">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 pt-6 border-t border-gray-200">
+                        <h3 class="section-title">Transaction Details</h3>
+                        <div>
+                            <label for="amountSend" class="block text-sm font-medium text-gray-700 mb-1">Amount to Send (USD)</label>
+                            <input type="number" id="amountSend" name="amountSend" placeholder="e.g., 100" min="1" step="0.01" class="input-field" required>
+                        </div>
+                        <div>
+                            <label for="amountReceive" class="block text-sm font-medium text-gray-700 mb-1">Recipient Will Receive</label>
+                            <input type="text" id="amountReceive" name="amountReceive" value="Calculated automatically" class="input-field bg-gray-100 cursor-not-allowed" readonly>
+                        </div>
+                        <div>
+                            <label for="purpose" class="block text-sm font-medium text-gray-700 mb-1">Purpose of Transfer</label>
+                            <textarea id="purpose" name="purpose" rows="3" placeholder="e.g., Family support, Gift, Business" class="input-field resize-y"></textarea>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-primary">Send Money Now</button>
+                    <div id="responseMessage" class="message-box"></div>
+                </form>
+            </div>
+
+            <div id="estimateFeesSection" class="mt-8">
+                <h2 class="section-title">Estimate Fees for an Amount of Your Choice</h2>
+                <p class="text-center text-gray-600 mb-6">See how much your recipient could get before you send.</p>
+                <button id="toggleEstimateFeesFormBtn" class="btn-secondary">Estimate Fees</button>
+
+                <div id="feeEstimationForm" class="space-y-4 mt-6 hidden">
                     <div>
-                        <label for="recipientName" class="block text-sm font-medium text-gray-700 mb-1">Recipient Full Name</label>
-                        <input type="text" id="recipientName" name="recipientName" placeholder="Recipient's Full Name" class="input-field" required>
+                        <label for="estimateAmount" class="block text-sm font-medium text-gray-700 mb-1">Amount to Estimate (USD)</label>
+                        <input type="number" id="estimateAmount" placeholder="e.g., 50" min="1" step="0.01" class="input-field">
                     </div>
                     <div>
-                        <label for="recipientPhone" class="block text-sm font-medium text-gray-700 mb-1">Recipient Phone Number (Zimbabwe)</label>
-                        <input type="tel" id="recipientPhone" name="recipientPhone" placeholder="+2637xxxxxxxxx" class="input-field" required>
-                    </div>
-                    <div>
-                        <label for="payoutMethod" class="block text-sm font-medium text-gray-700 mb-1">Payout Method</label>
-                        <select id="payoutMethod" name="payoutMethod" class="input-field" required>
+                        <label for="estimatePayoutMethod" class="block text-sm font-medium text-gray-700 mb-1">Desired Payout Method</label>
+                        <select id="estimatePayoutMethod" class="input-field">
                             <option value="">Select Payout Method</option>
                             <option value="mobile_money">Mobile Money (EcoCash, OneMoney)</option>
                             <option value="bank_transfer">Bank Transfer (USD)</option>
                             <option value="cash_pickup">Cash Pickup (USD or ZWL)</option>
                         </select>
                     </div>
-                    <div id="bankDetails" class="space-y-4 hidden">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Bank Details</label>
-                        <div>
-                            <input type="text" id="bankName" name="bankName" placeholder="Bank Name" class="input-field">
-                        </div>
-                        <div>
-                            <input type="text" id="accountNumber" name="accountNumber" placeholder="Account Number" class="input-field">
-                        </div>
-                    </div>
+                    <div id="estimatedResult" class="message-box success-message" style="display: none;"></div>
                 </div>
-
-                <div class="space-y-4 pt-6 border-t border-gray-200">
-                    <h2 class="section-title">Transaction Details</h2>
-                    <div>
-                        <label for="amountSend" class="block text-sm font-medium text-gray-700 mb-1">Amount to Send (USD)</label>
-                        <input type="number" id="amountSend" name="amountSend" placeholder="e.g., 100" min="1" step="0.01" class="input-field" required>
-                    </div>
-                    <div>
-                        <label for="amountReceive" class="block text-sm font-medium text-gray-700 mb-1">Recipient Will Receive</label>
-                        <input type="text" id="amountReceive" name="amountReceive" value="Calculated automatically" class="input-field bg-gray-100 cursor-not-allowed" readonly>
-                    </div>
-                    <div>
-                        <label for="purpose" class="block text-sm font-medium text-gray-700 mb-1">Purpose of Transfer</label>
-                        <textarea id="purpose" name="purpose" rows="3" placeholder="e.g., Family support, Gift, Business" class="input-field resize-y"></textarea>
-                    </div>
-                </div>
-
-                <button type="submit" class="btn-primary">Send Money Now</button>
-                <div id="responseMessage" class="message-box"></div>
-            </form>
+            </div>
         </div>
 
         <div id="account" class="tab-content">
@@ -625,14 +676,34 @@
         const viewTermsLink = document.getElementById('viewTermsLink');
         const closeTermsModalBtn = document.getElementById('closeTermsModal');
 
+        const toggleRemittanceFormBtn = document.getElementById('toggleRemittanceFormBtn');
+        const sendMoneySection = document.getElementById('sendMoneySection'); // Parent div for remittance form & its button
+
+        const toggleEstimateFeesFormBtn = document.getElementById('toggleEstimateFeesFormBtn');
+        const feeEstimationForm = document.getElementById('feeEstimationForm');
+        const estimateAmountInput = document.getElementById('estimateAmount');
+        const estimatePayoutMethodSelect = document.getElementById('estimatePayoutMethod');
+        const estimatedResultDiv = document.getElementById('estimatedResult');
+        const estimateFeesSection = document.getElementById('estimateFeesSection');
+
+
         // Helper function to display messages
         function displayMessage(element, message, type) {
             element.textContent = message;
             element.classList.remove('error-message', 'success-message');
+            // Remove previous type classes
+            element.classList.forEach(className => {
+                if (className.includes('-message')) {
+                    element.classList.remove(className);
+                }
+            });
+
             if (type === 'error') {
                 element.classList.add('error-message');
             } else if (type === 'success') {
                 element.classList.add('success-message');
+            } else { // Neutral/info message
+                element.classList.add('message-box');
             }
             element.style.display = 'block';
             setTimeout(() => {
@@ -663,47 +734,99 @@
         };
         const fixedFee = 3.00; // Example fixed fee
 
+        function calculateReceivedAmount(amountUSD, payoutMethod) {
+            if (isNaN(amountUSD) || amountUSD <= 0) {
+                return { amount: 0, currency: 'N/A' };
+            }
+
+            const netAmount = amountUSD - fixedFee;
+            if (netAmount <= 0) {
+                return { amount: 0, currency: 'Too Low' };
+            }
+
+            let receivedAmount;
+            let currency;
+
+            if (payoutMethod === 'bank_transfer') {
+                receivedAmount = netAmount;
+                currency = 'USD';
+            } else if (payoutMethod === 'mobile_money') {
+                receivedAmount = netAmount * exchangeRates['ZWL'];
+                currency = 'ZWL';
+            } else if (payoutMethod === 'cash_pickup') {
+                // Assuming cash pickup can be USD or ZWL, defaulting to USD for simplicity
+                // In a real scenario, you might have an option for recipient to choose
+                receivedAmount = netAmount;
+                currency = 'USD';
+            } else {
+                return { amount: 0, currency: 'N/A' };
+            }
+            return { amount: receivedAmount, currency: currency };
+        }
+
         function updateAmountReceive() {
             const amountUSD = parseFloat(amountSendInput.value);
             const payoutMethod = payoutMethodSelect.value;
-            let receivedAmount = 0;
-            let currency = 'N/A';
+            const result = calculateReceivedAmount(amountUSD, payoutMethod);
 
-            if (!isNaN(amountUSD) && amountUSD > 0) {
-                // Deduct fixed fee from the amount sent
-                const netAmount = amountUSD - fixedFee;
-                if (netAmount <= 0) {
-                    amountReceiveInput.value = 'Amount too low after fee';
-                    return;
-                }
-
-                if (payoutMethod === 'bank_transfer') {
-                    // Assuming bank transfer receives USD directly
-                    receivedAmount = netAmount;
-                    currency = 'USD';
-                } else if (payoutMethod === 'mobile_money' || payoutMethod === 'cash_pickup') {
-                    // For mobile money and cash pickup, convert to ZWL using the rate
-                    // Or, if cash pickup is in USD, keep it USD
-                    // For simplicity, let's assume mobile money is ZWL and cash pickup can be either
-                    if (payoutMethod === 'mobile_money') {
-                        receivedAmount = netAmount * exchangeRates['ZWL'];
-                        currency = 'ZWL';
-                    } else if (payoutMethod === 'cash_pickup') {
-                        // For cash pickup, give the user an option or default to USD
-                        // For this demo, let's assume it's USD for cash pickup for simplicity
-                        receivedAmount = netAmount;
-                        currency = 'USD';
-                    }
-                }
-                amountReceiveInput.value = `${receivedAmount.toFixed(2)} ${currency}`;
+            if (result.currency === 'Too Low') {
+                amountReceiveInput.value = 'Amount too low after fee';
+            } else if (result.currency === 'N/A') {
+                amountReceiveInput.value = 'Select payout method';
             } else {
-                amountReceiveInput.value = 'Calculated automatically';
+                amountReceiveInput.value = `${result.amount.toFixed(2)} ${result.currency}`;
             }
         }
 
         amountSendInput.addEventListener('input', updateAmountReceive);
         // Initial calculation on load
         updateAmountReceive();
+
+
+        // Fee Estimation Logic
+        function updateEstimatedFees() {
+            const amount = parseFloat(estimateAmountInput.value);
+            const payoutMethod = estimatePayoutMethodSelect.value;
+            const result = calculateReceivedAmount(amount, payoutMethod);
+
+            if (result.currency === 'Too Low') {
+                displayMessage(estimatedResultDiv, 'The amount is too low after considering the fixed fee ($3.00).', 'error');
+            } else if (result.currency === 'N/A' || isNaN(amount) || amount <= 0 || !payoutMethod) {
+                estimatedResultDiv.style.display = 'none'; // Hide if inputs are invalid/empty
+            } else {
+                const fee = fixedFee;
+                displayMessage(estimatedResultDiv, `Sending $${amount.toFixed(2)} USD will incur a fee of $${fee.toFixed(2)} USD. Your recipient will receive approximately ${result.amount.toFixed(2)} ${result.currency}.`, 'success');
+            }
+        }
+
+        estimateAmountInput.addEventListener('input', updateEstimatedFees);
+        estimatePayoutMethodSelect.addEventListener('change', updateEstimatedFees);
+
+
+        // Toggle Remittance Form Visibility
+        toggleRemittanceFormBtn.addEventListener('click', () => {
+            if (form.classList.contains('hidden')) {
+                form.classList.remove('hidden');
+                toggleRemittanceFormBtn.textContent = 'Hide Send Money Form';
+            } else {
+                form.classList.add('hidden');
+                toggleRemittanceFormBtn.textContent = 'Send Money';
+            }
+        });
+
+        // Toggle Estimate Fees Form Visibility
+        toggleEstimateFeesFormBtn.addEventListener('click', () => {
+            if (feeEstimationForm.classList.contains('hidden')) {
+                feeEstimationForm.classList.remove('hidden');
+                toggleEstimateFeesFormBtn.textContent = 'Hide Fee Estimator';
+                updateEstimatedFees(); // Run estimation when shown
+            } else {
+                feeEstimationForm.classList.add('hidden');
+                toggleEstimateFeesFormBtn.textContent = 'Estimate Fees';
+                estimatedResultDiv.style.display = 'none'; // Hide result when form is hidden
+            }
+        });
+
 
         // Handle form submission for remittance
         form.addEventListener('submit', async function(event) {
@@ -786,6 +909,8 @@
                 form.reset(); // Clear form fields
                 updateAmountReceive(); // Reset calculated amount display
                 bankDetailsDiv.classList.add('hidden'); // Hide bank details if they were shown
+                form.classList.add('hidden'); // Hide the form after successful submission
+                toggleRemittanceFormBtn.textContent = 'Send Money'; // Reset button text
             } catch (error) {
                 console.error('Error initiating transfer:', error);
                 displayMessage(responseMessageDiv, `Oops! Something went wrong while initiating your transfer: ${error.message}. Please try again shortly.`, 'error');
@@ -894,8 +1019,7 @@
                 console.log("User logged out.");
                 displayMessage(accountMessageDiv, 'You have been successfully logged out. We look forward to seeing you again soon!', 'success');
                 // Ensure auth section is visible and user info section is hidden
-                document.getElementById('auth-section').classList.remove('hidden');
-                document.getElementById('user-info-section').classList.add('hidden');
+                // This state is also handled by the onAuthStateChanged listener
             } catch (error) {
                 console.error("Error logging out:", error);
                 displayMessage(accountMessageDiv, `We couldn't log you out right now: ${error.message}. Please try again.`, 'error');
@@ -924,11 +1048,9 @@
             }
         });
 
-        // Ensure that when switching to account tab, the anonymous ID is updated if available
-        document.querySelector('.tab-button[data-tab="account"]').addEventListener('click', () => {
-            if (!auth.currentUser) {
-                document.getElementById('user-id-display-anon').textContent = `User ID: ${auth.currentUser?.uid || 'Not authenticated'}`;
-            }
+        // Set initial active tab to 'home'
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelector('.tab-button[data-tab="home"]').click();
         });
     </script>
 </body>
